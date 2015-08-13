@@ -8,6 +8,4 @@ if defined?(Sequel)
       end
     end
   end
-
-  Sequel::Model.extend AttrEncrypted::Adapters::Sequel
 end
