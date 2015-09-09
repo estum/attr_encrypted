@@ -12,6 +12,8 @@ class SillyEncryptor
 end
 
 class User
+  include AttrEncrypted
+
   self.attr_encrypted_options[:key] = Proc.new { |user| SECRET_KEY } # default key
   self.attr_encrypted_options[:mode] = :per_attribute_iv_and_salt
 
@@ -48,9 +50,15 @@ class Admin < User
 end
 
 class SomeOtherClass
+  include AttrEncrypted
+
   def self.call(object)
     object.class
   end
+end
+
+class CryptedObject
+  include AttrEncrypted
 end
 
 class AttrEncryptedTest < Minitest::Test
@@ -201,23 +209,23 @@ class AttrEncryptedTest < Minitest::Test
   end
 
   def test_should_evaluate_a_symbol_option
-    assert_equal Object, Object.new.send(:evaluate_attr_encrypted_option, :class)
+    assert_equal CryptedObject, CryptedObject.new.send(:evaluate_attr_encrypted_option, :class)
   end
 
   def test_should_evaluate_a_proc_option
-    assert_equal Object, Object.new.send(:evaluate_attr_encrypted_option, proc { |object| object.class })
+    assert_equal CryptedObject, CryptedObject.new.send(:evaluate_attr_encrypted_option, proc { |object| object.class })
   end
 
   def test_should_evaluate_a_lambda_option
-    assert_equal Object, Object.new.send(:evaluate_attr_encrypted_option, lambda { |object| object.class })
+    assert_equal CryptedObject, CryptedObject.new.send(:evaluate_attr_encrypted_option, lambda { |object| object.class })
   end
 
   def test_should_evaluate_a_method_option
-    assert_equal Object, Object.new.send(:evaluate_attr_encrypted_option, SomeOtherClass.method(:call))
+    assert_equal CryptedObject, CryptedObject.new.send(:evaluate_attr_encrypted_option, SomeOtherClass.method(:call))
   end
 
   def test_should_return_a_string_option
-    assert_equal 'Object', Object.new.send(:evaluate_attr_encrypted_option, 'Object')
+    assert_equal 'CryptedObject', CryptedObject.new.send(:evaluate_attr_encrypted_option, 'CryptedObject')
   end
 
   def test_should_encrypt_with_true_if

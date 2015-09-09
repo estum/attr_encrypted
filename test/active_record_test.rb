@@ -36,30 +36,21 @@ end
 create_tables
 
 ActiveRecord::MissingAttributeError = ActiveModel::MissingAttributeError unless defined?(ActiveRecord::MissingAttributeError)
-ActiveRecord::Base.logger = Logger.new(nil) if ::ActiveRecord::VERSION::STRING < "3.0"
 
-if ::ActiveRecord::VERSION::STRING > "4.0"
-  module Rack
-    module Test
-      class UploadedFile; end
-    end
+module Rack
+  module Test
+    class UploadedFile; end
   end
-
-  require 'action_controller/metal/strong_parameters'
 end
+
+require 'action_controller/metal/strong_parameters'
 
 class Person < ActiveRecord::Base
   self.attr_encrypted_options[:mode] = :per_attribute_iv_and_salt
   attr_encrypted :email, :key => SECRET_KEY
   attr_encrypted :credentials, :key => Proc.new { |user| Encryptor.encrypt(:value => user.salt, :key => SECRET_KEY) }, :marshal => true
 
-  if ActiveRecord::VERSION::STRING < "3"
-    def after_initialize
-      initialize_salt_and_credentials
-    end
-  else
-    after_initialize :initialize_salt_and_credentials
-  end
+  after_initialize :initialize_salt_and_credentials
 
   protected
 
@@ -92,7 +83,6 @@ end
 class UserWithProtectedAttribute < ActiveRecord::Base
   self.table_name = 'users'
   attr_encrypted :password, :key => 'a secret key'
-  attr_protected :is_admin if ::ActiveRecord::VERSION::STRING < "4.0"
 end
 
 class PersonUsingAlias < ActiveRecord::Base
@@ -116,14 +106,14 @@ class ActiveRecordTest < Minitest::Test
     @person = Person.create :email => 'test@example.com'
     refute_nil @person.encrypted_email
     refute_equal @person.email, @person.encrypted_email
-    assert_equal @person.email, Person.find(:first).email
+    assert_equal @person.email, Person.first.email
   end
 
   def test_should_marshal_and_encrypt_credentials
     @person = Person.create
     refute_nil @person.encrypted_credentials
     refute_equal @person.credentials, @person.encrypted_credentials
-    assert_equal @person.credentials, Person.find(:first).credentials
+    assert_equal @person.credentials, Person.first.credentials
   end
 
   def test_should_encode_by_default
@@ -164,52 +154,28 @@ class ActiveRecordTest < Minitest::Test
     assert_equal account.key, hash
   end
 
-  if ::ActiveRecord::VERSION::STRING > "4.0"
-    def test_should_assign_attributes
-      @user = UserWithProtectedAttribute.new :login => 'login', :is_admin => false
-      @user.attributes = ActionController::Parameters.new(:login => 'modified', :is_admin => true).permit(:login)
-      assert_equal 'modified', @user.login
-    end
+  def test_should_assign_attributes
+    @user = UserWithProtectedAttribute.new :login => 'login', :is_admin => false
+    @user.attributes = ActionController::Parameters.new(:login => 'modified', :is_admin => true).permit(:login)
+    assert_equal 'modified', @user.login
+  end
 
-    def test_should_not_assign_protected_attributes
-      @user = UserWithProtectedAttribute.new :login => 'login', :is_admin => false
-      @user.attributes = ActionController::Parameters.new(:login => 'modified', :is_admin => true).permit(:login)
-      assert !@user.is_admin?
-    end
+  def test_should_not_assign_protected_attributes
+    @user = UserWithProtectedAttribute.new :login => 'login', :is_admin => false
+    @user.attributes = ActionController::Parameters.new(:login => 'modified', :is_admin => true).permit(:login)
+    assert !@user.is_admin?
+  end
 
-    def test_should_raise_exception_if_not_permitted
-      @user = UserWithProtectedAttribute.new :login => 'login', :is_admin => false
-      assert_raises ActiveModel::ForbiddenAttributesError do
-        @user.attributes = ActionController::Parameters.new(:login => 'modified', :is_admin => true)
-      end
+  def test_should_raise_exception_if_not_permitted
+    @user = UserWithProtectedAttribute.new :login => 'login', :is_admin => false
+    assert_raises ActiveModel::ForbiddenAttributesError do
+      @user.attributes = ActionController::Parameters.new(:login => 'modified', :is_admin => true)
     end
+  end
 
-    def test_should_raise_exception_on_init_if_not_permitted
-      assert_raises ActiveModel::ForbiddenAttributesError do
-        @user = UserWithProtectedAttribute.new ActionController::Parameters.new(:login => 'modified', :is_admin => true)
-      end
-    end
-  else
-    def test_should_assign_attributes
-      @user = UserWithProtectedAttribute.new :login => 'login', :is_admin => false
-      @user.attributes = {:login => 'modified', :is_admin => true}
-      assert_equal 'modified', @user.login
-    end
-
-    def test_should_not_assign_protected_attributes
-      @user = UserWithProtectedAttribute.new :login => 'login', :is_admin => false
-      @user.attributes = {:login => 'modified', :is_admin => true}
-      assert !@user.is_admin?
-    end
-
-    def test_should_assign_protected_attributes
-      @user = UserWithProtectedAttribute.new :login => 'login', :is_admin => false
-      if ::ActiveRecord::VERSION::STRING > "3.1"
-        @user.send :assign_attributes, {:login => 'modified', :is_admin => true}, :without_protection => true
-      else
-        @user.send :attributes=, {:login => 'modified', :is_admin => true}, false
-      end
-      assert @user.is_admin?
+  def test_should_raise_exception_on_init_if_not_permitted
+    assert_raises ActiveModel::ForbiddenAttributesError do
+      @user = UserWithProtectedAttribute.new ActionController::Parameters.new(:login => 'modified', :is_admin => true)
     end
   end
 
@@ -234,11 +200,9 @@ class ActiveRecordTest < Minitest::Test
     assert_nil @person.encrypted_credentials_iv
   end
 
-  if ::ActiveRecord::VERSION::STRING > "3.1"
-    def test_should_allow_assign_attributes_with_nil
-      @person = Person.new
-      assert_nil(@person.assign_attributes nil)
-    end
+  def test_should_allow_assign_attributes_with_nil
+    @person = Person.new
+    assert_nil(@person.assign_attributes nil)
   end
 
   def test_that_alias_encrypts_column
@@ -248,7 +212,7 @@ class ActiveRecordTest < Minitest::Test
 
     refute_nil user.encrypted_email
     refute_equal user.email, user.encrypted_email
-    assert_equal user.email, PersonUsingAlias.find(:first).email
+    assert_equal user.email, PersonUsingAlias.first.email
   end
 
   # See https://github.com/attr-encrypted/attr_encrypted/issues/68

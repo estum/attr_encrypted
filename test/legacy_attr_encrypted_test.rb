@@ -12,6 +12,8 @@ class LegacySillyEncryptor
 end
 
 class LegacyUser
+  include AttrEncrypted
+
   self.attr_encrypted_options[:key] = Proc.new { |user| user.class.to_s } # default key
 
   attr_encrypted :email, :without_encoding, :key => 'secret key'
@@ -43,10 +45,17 @@ class LegacyAdmin < LegacyUser
 end
 
 class LegacySomeOtherClass
+  include AttrEncrypted
+
   def self.call(object)
     object.class
   end
 end
+
+class CryptedObject
+  include AttrEncrypted
+end
+
 
 class LegacyAttrEncryptedTest < Minitest::Test
 
@@ -208,23 +217,23 @@ class LegacyAttrEncryptedTest < Minitest::Test
   end
 
   def test_should_evaluate_a_symbol_option
-    assert_equal Object, Object.new.send(:evaluate_attr_encrypted_option, :class)
+    assert_equal CryptedObject, CryptedObject.new.send(:evaluate_attr_encrypted_option, :class)
   end
 
   def test_should_evaluate_a_proc_option
-    assert_equal Object, Object.new.send(:evaluate_attr_encrypted_option, proc { |object| object.class })
+    assert_equal CryptedObject, CryptedObject.new.send(:evaluate_attr_encrypted_option, proc { |object| object.class })
   end
 
   def test_should_evaluate_a_lambda_option
-    assert_equal Object, Object.new.send(:evaluate_attr_encrypted_option, lambda { |object| object.class })
+    assert_equal CryptedObject, CryptedObject.new.send(:evaluate_attr_encrypted_option, lambda { |object| object.class })
   end
 
   def test_should_evaluate_a_method_option
-    assert_equal Object, Object.new.send(:evaluate_attr_encrypted_option, LegacySomeOtherClass.method(:call))
+    assert_equal CryptedObject, CryptedObject.new.send(:evaluate_attr_encrypted_option, LegacySomeOtherClass.method(:call))
   end
 
   def test_should_return_a_string_option
-    assert_equal 'Object', Object.new.send(:evaluate_attr_encrypted_option, 'Object')
+    assert_equal 'CryptedObject', CryptedObject.new.send(:evaluate_attr_encrypted_option, 'CryptedObject')
   end
 
   def test_should_encrypt_with_true_if
