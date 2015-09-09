@@ -1,3 +1,3 @@
 module AttrEncrypted
-  VERSION = "1.3.10"
+  VERSION = "1.3.42"
 end
