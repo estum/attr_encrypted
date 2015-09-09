@@ -1,6 +1,6 @@
 require 'rake'
 require 'rake/testtask'
-require 'rake/rdoctask'
+require 'rdoc/task'
 require "bundler/gem_tasks"
 
 desc 'Test the attr_encrypted gem.'
@@ -11,8 +11,9 @@ Rake::TestTask.new(:test) do |t|
 end
 
 desc 'Generate documentation for the attr_encrypted gem.'
-Rake::RDocTask.new(:rdoc) do |rdoc|
-  rdoc.rdoc_dir = 'rdoc'
+RDoc::Task.new do |rdoc|
+  rdoc.main = "README.rdoc"
+  rdoc.rdoc_dir = "rdoc"
   rdoc.title    = 'attr_encrypted'
   rdoc.options << '--line-numbers' << '--inline-source'
   rdoc.rdoc_files.include('README*')

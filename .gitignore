@@ -1,6 +1,7 @@
 .bundle
 .DS_Store
 .ruby-version
+rdoc
 pkg
 Gemfile.lock
 coverage

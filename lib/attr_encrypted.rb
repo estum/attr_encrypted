@@ -16,25 +16,30 @@ module AttrEncrypted
     autoload :ActiveRecord
   end
 
+  ##
+  # :singleton-method: attr_encrypted_options
+  # Default options to use with calls to <tt>attr_encrypted</tt>
+  #
+  # It will inherit existing options from its superclass
+
+  ##
+  # :singleton-method: encrypted_attributes
+  # Contains a hash of encrypted attributes with virtual attribute names as keys
+  # and their corresponding options as values
+  #
+  # Example
+  #
+  #   class User
+  #     attr_encrypted :email, :key => 'my secret key'
+  #   end
+  #
+  #   User.encrypted_attributes # { :email => { :attribute => 'encrypted_email', :key => 'my secret key' } }
+
+
   included do
-    # :method: self.attr_encrypted_options
-    # Default options to use with calls to <tt>attr_encrypted</tt>
-    #
-    # It will inherit existing options from its superclass
     class_attribute :attr_encrypted_options, instance_accessor: false
     self.attr_encrypted_options ||= {}
 
-    # :method: self.attr_encrypted_attributes
-    # Contains a hash of encrypted attributes with virtual attribute names as keys
-    # and their corresponding options as values
-    #
-    # Example
-    #
-    #   class User
-    #     attr_encrypted :email, :key => 'my secret key'
-    #   end
-    #
-    #   User.encrypted_attributes # { :email => { :attribute => 'encrypted_email', :key => 'my secret key' } }
     class_attribute :encrypted_attributes, instance_accessor: false
     self.encrypted_attributes ||= {}
 
@@ -60,6 +65,8 @@ module AttrEncrypted
       :decrypt_method   => 'decrypt',
       :mode             => :single_iv_and_salt
     }
+
+    private_constant :DEFAULT_ATTR_ENCRYPTED_OPTIONS
 
     # Generates attr_accessors that encrypt and decrypt attributes transparently
     #
@@ -258,6 +265,14 @@ module AttrEncrypted
       end
     end
 
+    protected
+
+    def attribute_method_already_implemented?(method_name)
+      method_defined?(method_name) || private_method_defined?(method_name)
+    end
+
+    private
+
     # Forwards calls to :encrypt_#{attribute} or :decrypt_#{attribute} to the corresponding encrypt or decrypt method
     # if attribute was configured with attr_encrypted
     #
@@ -280,12 +295,6 @@ module AttrEncrypted
       super
       subclass.attr_encrypted_options = attr_encrypted_options.dup
       subclass.encrypted_attributes = encrypted_attributes.dup
-    end
-
-    protected
-
-    def attribute_method_already_implemented?(method_name)
-      method_defined?(method_name) || private_method_defined?(method_name)
     end
   end
 
