@@ -4,3 +4,6 @@ rvm:
   - 2.2.3
 env:
   - ACTIVERECORD=4.2
+branches:
+  only:
+    - magicless
